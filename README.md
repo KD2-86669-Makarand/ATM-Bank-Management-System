@@ -11,3 +11,9 @@ Key features :
 5. Transaction history
 6. Notification for every transaction via Email
 7. Pin reset
+
+Technologies used :
+1. Java (Core + JDBC)
+2. MySQL RDBMS
+3. Console Based interface
+4. Object Oriented Programming
