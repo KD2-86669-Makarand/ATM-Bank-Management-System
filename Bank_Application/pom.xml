@@ -15,5 +15,27 @@
 	    <artifactId>mysql-connector-java</artifactId>
 	    <version>8.0.23</version>
   	</dependency>
+  		<dependency>
+	    <groupId>com.sun.mail</groupId>
+	    <artifactId>javax.mail</artifactId>
+	    <version>1.6.2</version>
+	</dependency>
+	<dependency>
+        <groupId>javax.mail</groupId>
+        <artifactId>javax.mail-api</artifactId>
+        <version>1.6.2</version>
+    </dependency>
+	<dependency>
+        <groupId>com.itextpdf</groupId>
+        <artifactId>itext7-core</artifactId>
+        <version>7.2.5</version>
+        <type>pom</type>
+    </dependency>
+    <!-- OpenCSV for CSV generation -->
+    <dependency>
+        <groupId>com.opencsv</groupId>
+        <artifactId>opencsv</artifactId>
+        <version>5.7.1</version>
+    </dependency>
   </dependencies>
 </project>

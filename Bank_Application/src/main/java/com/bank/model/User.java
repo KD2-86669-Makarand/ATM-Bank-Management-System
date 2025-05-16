@@ -1,4 +1,4 @@
-package com.atm.model;
+package com.bank.model;
 
 public class User 
 {

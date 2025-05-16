@@ -1,10 +1,10 @@
-package com.atm.dao;
+package com.bank.dao;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-import com.atm.util.DbUtil;
+import com.bank.util.DbUtil;
 
 public class AdminDao 
 {

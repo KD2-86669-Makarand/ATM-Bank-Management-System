@@ -16,7 +16,10 @@ public class ATMTester
 		// Step 1: Check if PIN is set
 		if (!AtmDao.isPinSet(card)) {
 		    System.out.println("You haven't set your PIN yet.");
-		    AtmDao.setInitialPin(card);
+		    System.out.println();
+	        System.out.print("Set your new 4-digit PIN: ");
+	        int newPin = sc.nextInt();
+		    AtmDao.setInitialPin(card, newPin);
 		    // Optional: Exit and force the user to login again
 		    return;
 		}
