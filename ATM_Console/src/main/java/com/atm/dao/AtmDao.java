@@ -1,11 +1,17 @@
 package com.atm.dao;
 
+import java.io.FileWriter;
 import java.sql.*;
+import java.util.Properties;
 import java.util.Scanner;
 
+import javax.mail.MessagingException;
 import javax.print.DocFlavor.STRING;
 
+import com.atm.emailer.EmailSender;
 import com.atm.util.DbUtil;
+import com.atm.util.EmailUtil;
+import com.mysql.cj.jdbc.ha.BalanceStrategy;
 
 public class AtmDao {
 
@@ -42,12 +48,12 @@ public class AtmDao {
             return "Error during balance check.";
         }
     }
-
-
+    
     public static String deposit(String card, double amount) {
         try (Connection con = DbUtil.getConnection()) {
             con.setAutoCommit(false);
 
+            // 1. Update balance
             String updateBalance = "UPDATE user SET balance = balance + ? WHERE card_number = ?";
             try (PreparedStatement ps = con.prepareStatement(updateBalance)) {
                 ps.setDouble(1, amount);
@@ -55,58 +61,109 @@ public class AtmDao {
                 ps.executeUpdate();
             }
 
+            // 2. Insert transaction
             String insertTransaction = "INSERT INTO transactions(card_number, type, amount) VALUES (?, 'Deposit', ?)";
-            try (PreparedStatement log = con.prepareStatement(insertTransaction)) {
+            String transactionId = null;
+            try (PreparedStatement log = con.prepareStatement(insertTransaction, Statement.RETURN_GENERATED_KEYS)) {
                 log.setString(1, card);
                 log.setDouble(2, amount);
                 log.executeUpdate();
+                ResultSet generatedKeys = log.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    transactionId = "TXN" + generatedKeys.getInt(1);
+                }
             }
 
             con.commit();
+
+            // 3. Fetch details
+            String userSql = "SELECT first_name, balance, email FROM user u WHERE u.card_number = ?";
+            try (PreparedStatement userStmt = con.prepareStatement(userSql)) {
+                userStmt.setString(1, card);
+                ResultSet rs = userStmt.executeQuery();
+                if (rs.next()) {
+                    String name = rs.getString("first_name");
+                    double balance = rs.getDouble("balance");
+                    String email = rs.getString("email");
+
+                    // 4. Format datetime
+                    String dateTime = java.time.LocalDateTime.now().toString();
+
+                    // 5. Send email
+                    EmailSender.sendDepositEmail(email, name, card, amount, transactionId, balance, dateTime);
+                }
+            }
+
             return "₹" + amount + " deposited successfully.";
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             return "Error during deposit.";
         }
     }
- 
+
     public static String withdraw(String card, double amount) {
         try (Connection con = DbUtil.getConnection()) {
             con.setAutoCommit(false);
 
-            String checkBalance = "SELECT balance FROM user WHERE card_number = ?";
-            try (PreparedStatement check = con.prepareStatement(checkBalance)) {
-                check.setString(1, card);
-                ResultSet rs = check.executeQuery();
+            String checkBalSql = "SELECT balance FROM user WHERE card_number = ?";
+            try (PreparedStatement stmt = con.prepareStatement(checkBalSql)) {
+                stmt.setString(1, card);
+                ResultSet rs = stmt.executeQuery();
 
-                if (rs.next()) {
-                    double balance = rs.getDouble("balance");
-
-                    if (balance >= amount) {
-                        String updateBalance = "UPDATE user SET balance = balance - ? WHERE card_number = ?";
-                        try (PreparedStatement ps = con.prepareStatement(updateBalance)) {
-                            ps.setDouble(1, amount);
-                            ps.setString(2, card);
-                            ps.executeUpdate();
-                        }
-
-                        String insertTransaction = "INSERT INTO transactions(card_number, type, amount) VALUES (?, 'Withdraw', ?)";
-                        try (PreparedStatement log = con.prepareStatement(insertTransaction)) {
-                            log.setString(1, card);
-                            log.setDouble(2, amount);
-                            log.executeUpdate();
-                        }
-
-                        con.commit();
-                        return "₹" + amount + " withdrawn successfully.";
-                    } else {
-                        return "Insufficient funds.";
-                    }
-                } else {
+                if (!rs.next()) {
                     return "Card not found.";
                 }
+
+                double availableBalance = rs.getDouble("balance");
+
+                if (availableBalance < amount) {
+                    return "Insufficient funds.";
+                }
+
+                // 1. Deduct balance
+                String updateBalance = "UPDATE user SET balance = balance - ? WHERE card_number = ?";
+                try (PreparedStatement updateStmt = con.prepareStatement(updateBalance)) {
+                    updateStmt.setDouble(1, amount);
+                    updateStmt.setString(2, card);
+                    updateStmt.executeUpdate();
+                }
+
+                // 2. Insert transaction and get transaction ID
+                String insertTransaction = "INSERT INTO transactions(card_number, type, amount) VALUES (?, 'Withdraw', ?)";
+                String transactionId = null;
+                try (PreparedStatement log = con.prepareStatement(insertTransaction, Statement.RETURN_GENERATED_KEYS)) {
+                    log.setString(1, card);
+                    log.setDouble(2, amount);
+                    log.executeUpdate();
+
+                    ResultSet generatedKeys = log.getGeneratedKeys();
+                    if (generatedKeys.next()) {
+                        transactionId = "TXN" + generatedKeys.getInt(1);
+                    }
+                }
+
+                // 3. Fetch user details
+                String userSql = "SELECT first_name, balance, email FROM user WHERE card_number = ?";
+                try (PreparedStatement userStmt = con.prepareStatement(userSql)) {
+                    userStmt.setString(1, card);
+                    ResultSet userRs = userStmt.executeQuery();
+
+                    if (userRs.next()) {
+                        String name = userRs.getString("first_name");
+                        double newBalance = userRs.getDouble("balance");
+                        String email = userRs.getString("email");
+
+                        String dateTime = java.time.LocalDateTime.now().toString();
+                        EmailSender.sendWithdrawalEmail(email, name, card, amount, transactionId, newBalance, dateTime);
+                    }
+                }
+
+                con.commit();
+                return "₹" + amount + " withdrawn successfully.";
             }
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             return "Error during withdrawal.";
         }
     }
@@ -136,9 +193,10 @@ public class AtmDao {
         return output.toString();
     }
     
+    
     public static String resetPassword(String card, String oldPin, String newPin) {
         String checksql = "SELECT * FROM user WHERE card_number = ? AND pin = ?";
-        String resetsql = "UPDATE users SET pin = ? WHERE card_number = ?";
+        String resetsql = "UPDATE user SET pin = ? WHERE card_number = ?";
         try (Connection con = DbUtil.getConnection()) {
 
             try (PreparedStatement checkstmt = con.prepareStatement(checksql)) {
@@ -187,13 +245,11 @@ public class AtmDao {
     	return false;
     }
     
-    public static void setInitialPin(String card) {
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Set your new 4-digit PIN: ");
-        String newPin = sc.nextLine();
+    public static void setInitialPin(String card, int newPin) 
+    {
         String query = "UPDATE user SET pin = ? WHERE card_number = ?";
         try (Connection con = DbUtil.getConnection(); PreparedStatement ps = con.prepareStatement(query)) {
-            ps.setString(1, newPin);
+            ps.setInt(1, newPin);
             ps.setString(2, card);
             int rows = ps.executeUpdate();
             if (rows > 0) {
