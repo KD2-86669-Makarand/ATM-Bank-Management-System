@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import com.bank.model.Session;
 import com.bank.util.DbUtil;
 
 public class AdminDao 
@@ -36,8 +37,11 @@ public class AdminDao
 			stmt.setString(2, password);
 			 
 			ResultSet rs = stmt.executeQuery();
-			if (rs.next()) {
-	            return true;
+			if (rs.next()) 
+			{
+				int adminId = rs.getInt("id");
+				Session.setAdminId(adminId);
+				return true;
 	        } else {
 	            return false;
 	        }

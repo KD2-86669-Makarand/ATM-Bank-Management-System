@@ -38,13 +38,12 @@ CREATE TABLE transactions (
 CREATE TABLE fixed_deposits
 (
 	fd_id INT PRIMARY KEY AUTO_INCREMENT,
-    account_no BIGINT,
+    accountNo BIGINT,
     amount DOUBLE,
     interest_rate DOUBLE,
     duration_months INT,
     start_date DATE,
     maturity_date DATE,
     status VARCHAR(20), -- e.g. Active, Matured
-    FOREIGN KEY (account_no) REFERENCES user(accountNo)
-    
+    FOREIGN KEY (accountNo) REFERENCES user(accountNo)
 );

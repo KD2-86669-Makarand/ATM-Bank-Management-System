@@ -10,7 +10,7 @@ public class DbUtil
 	
 	private static final String DB_USER = "makarand";
 	
-	private static final String DB_PASSWORD = "mak";
+	private static final String DB_PASSWORD = "manager";
 	
 	
 	public static Connection getConnection() throws SQLException

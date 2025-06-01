@@ -31,7 +31,9 @@ public class ATMTester
 		
 		if(AtmDao.authenticateUser(card, pin))
 		{
-			System.out.println("Welcome " + card + " To ATM Concole");
+			String name = AtmDao.getName(card);
+			
+			System.out.println("Welcome " + name + " To ATM Concole");
 			System.out.println();
 			int choice;
 			

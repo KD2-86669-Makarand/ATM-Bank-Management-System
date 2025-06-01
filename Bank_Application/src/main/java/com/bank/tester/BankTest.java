@@ -9,6 +9,7 @@ import java.util.Scanner;
 import com.bank.dao.AdminDao;
 import com.bank.dao.UserDao;
 import com.bank.emailer.EmailSender;
+import com.bank.model.Session;
 import com.bank.util.DbUtil;
 import com.bank.util.FileGenerator;
 
@@ -48,6 +49,8 @@ public class BankTest
 				System.out.println("7. Email transaction History");
 				System.out.println("8. Create New FD");
 				System.out.println("9. Check FD status");
+				System.out.println("10. View Profile Info");
+				System.out.println("Your Admin_Id : "+Session.getAdminId());
 				System.out.println();
 				System.out.println("Enter your choice : ");
 				choice = sc.nextInt();
@@ -58,6 +61,7 @@ public class BankTest
 					{
 						System.err.println("Thank you for using our Banking Services !!!");
 						System.err.println("Visit Again !!!!");
+						Session.setAdminId(null);
 						System.exit(1);
 						break;
 					}
@@ -114,7 +118,9 @@ public class BankTest
 						System.out.println("Enter Amount to Deposit :");
 						int amount = sc.nextInt();
 						
-						System.out.println("Amount Diposited : " + UserDao.deposit(accountNo, amount));
+						int adminId = Session.getAdminId();
+						
+						System.out.println("Amount Diposited : " + UserDao.deposit(accountNo, amount, adminId));
 						break;
 					}
 
@@ -123,10 +129,12 @@ public class BankTest
 						System.out.println("Enter Account Number : ");
 						long accountNo = sc.nextLong();
 						
-						System.out.println("Enter Amount to Deposit :");
+						System.out.println("Enter Amount to Withdraw :");
 						int amount = sc.nextInt();
 						
-						System.out.println("Amount Withdrawn : " + UserDao.withdraw(accountNo, amount));
+						int adminId = Session.getAdminId();
+						
+						System.out.println("Amount Withdrawn : " + UserDao.withdraw(accountNo, amount, adminId));
 						break;
 
 					}
@@ -153,7 +161,8 @@ public class BankTest
                         System.out.println("Enter Account Number: ");
                         long accountNo = sc.nextLong();
                         System.out.println("Enter email format (PDF/CSV): ");
-                        String format = "PDF"; // sc.nextLine().trim().toUpperCase();
+                        String format = sc.nextLine().trim().toUpperCase(); // sc.nextLine().trim().toUpperCase();
+                        
                         try {
                             // Get email from user table
                             String userEmail = null;
@@ -222,12 +231,22 @@ public class BankTest
 						break;
 					}
 					
+					case 10 : 
+					{
+						System.out.println("Enter Account No : ");
+						long accountNo = sc.nextLong();
+						System.out.println(UserDao.profileInfo(accountNo));
+						
+						break;
+					}
+					
 					default:
 					{
 						System.out.println("Invalid Inputs !!!");
 						break;
 					}
 				}
+				
 				
 			}while(choice != 0);
 		}

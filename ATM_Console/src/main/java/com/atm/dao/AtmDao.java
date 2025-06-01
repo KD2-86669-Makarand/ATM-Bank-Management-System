@@ -13,13 +13,37 @@ import com.atm.util.DbUtil;
 import com.atm.util.EmailUtil;
 import com.mysql.cj.jdbc.ha.BalanceStrategy;
 
-public class AtmDao {
+public class AtmDao 
+{
+	public static String getName(String card) {
+	    String sql = "SELECT first_name, last_name FROM user WHERE card_number = ?";
+	    
+	    try (Connection con = DbUtil.getConnection();
+	         PreparedStatement stmt = con.prepareStatement(sql)) {
+	        
+	        stmt.setString(1, card);
+	        ResultSet rs = stmt.executeQuery();
+	        
+	        if (rs.next()) {
+	            String firstName = rs.getString("first_name");
+	            String lastName = rs.getString("last_name");
+	            return firstName + " " + lastName;
+	        }
+	        
+	    } catch (Exception e) {
+	        System.err.println("Something went wrong during getName: " + e.getMessage());
+	    }
+	    
+	    return "User not found";
+	}
 
-    public static boolean authenticateUser(String card, String pin) {
+	public static boolean authenticateUser(String card, String pin) 
+	{
         String sql = "SELECT * FROM user WHERE card_number = ? AND pin = ?";
 
         try (Connection con = DbUtil.getConnection();
-             PreparedStatement stmt = con.prepareStatement(sql)) {
+             PreparedStatement stmt = con.prepareStatement(sql)) 
+        {
 
             stmt.setString(1, card);
             stmt.setString(2, pin);

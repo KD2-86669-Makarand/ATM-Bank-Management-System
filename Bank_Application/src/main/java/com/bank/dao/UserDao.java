@@ -16,10 +16,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+
 import com.bank.emailer.EmailSender;
 import com.bank.util.DbUtil;
 
-public class UserDao 
+public class UserDao 	
 {
 	private static final long STARTING_CARD_NUMBER = 4827159360482175L;
 	
@@ -110,80 +111,22 @@ public class UserDao
 		return balance;
 	}
 	
-	
-	// Deposit
-//	public static String deposit(long accountNo, int amount) 
-//	{
-//	    try (Connection con = DbUtil.getConnection()) 
-//	    {
-//	        con.setAutoCommit(false); // Start transaction
-//
-//	        String updateBalanceSQL = "UPDATE user SET balance = balance + ? WHERE accountNo = ?";
-//	        // 1. Update balance
-//	        try (PreparedStatement updateStmt = con.prepareStatement(updateBalanceSQL)) 
-//	        {
-//	            updateStmt.setInt(1, amount);
-//	            updateStmt.setLong(2, accountNo);
-//	            int rowsUpdated = updateStmt.executeUpdate();
-//
-//	            if (rowsUpdated == 0) {
-//	                con.rollback();
-//	                return "Account not found. Deposit failed.";
-//	            }
-//	        }
-//
-//	        String getCardNumberSQL = "SELECT card_number FROM user WHERE accountNo = ?";
-//	        // 2. Get card_number
-//	        String cardNumber = null;
-//	        try (PreparedStatement getCardStmt = con.prepareStatement(getCardNumberSQL)) 
-//	        {
-//	            getCardStmt.setLong(1, accountNo);
-//	            ResultSet rs = getCardStmt.executeQuery();
-//	            if (rs.next()) 
-//	            {
-//	                cardNumber = rs.getString("card_number");
-//	            } 
-//	            else 
-//	            {
-//	                con.rollback();
-//	                return "Card number not found. Deposit failed.";
-//	            }
-//	        }
-//
-//	        String insertTransactionSQL = "INSERT INTO transactions(card_number, amount, type) VALUES (?, ?, 'Deposit')";
-//	        // 3. Insert transaction
-//	        try (PreparedStatement insertStmt = con.prepareStatement(insertTransactionSQL)) 
-//	        {
-//	            insertStmt.setString(1, cardNumber);
-//	            insertStmt.setInt(2, amount);
-//	            insertStmt.executeUpdate();
-//	        }
-//
-//	        con.commit(); // Commit transaction
-//
-//	        EmailSender.sendDepositEmail(email, card, amount, balance);
-//
-//	        return "Deposit successful.";
-//
-//	    } 
-//	    catch (Exception e) 
-//	    {
-//	        e.printStackTrace();
-//	       return "Error occurred during deposit.";
-//	    }
-//
-//	}
-	public static String deposit(long accountNo, int amount) {
-	    try (Connection con = DbUtil.getConnection()) {
+
+	public static String deposit(long accountNo, int amount, int adminId) 
+	{
+	    try (Connection con = DbUtil.getConnection()) 
+	    {
 	        con.setAutoCommit(false); // Start transaction
 
 	        String updateBalanceSQL = "UPDATE user SET balance = balance + ? WHERE accountNo = ?";
-	        try (PreparedStatement updateStmt = con.prepareStatement(updateBalanceSQL)) {
+	        try (PreparedStatement updateStmt = con.prepareStatement(updateBalanceSQL)) 
+	        {
 	            updateStmt.setInt(1, amount);
 	            updateStmt.setLong(2, accountNo);
 	            int rowsUpdated = updateStmt.executeUpdate();
 
-	            if (rowsUpdated == 0) {
+	            if (rowsUpdated == 0) 
+	            {
 	                con.rollback();
 	                return "Account not found. Deposit failed.";
 	            }
@@ -193,23 +136,28 @@ public class UserDao
 	        String cardNumber = null, email = null;
 	        double newBalance = 0;
 
-	        try (PreparedStatement getInfoStmt = con.prepareStatement(userInfoSQL)) {
+	        try (PreparedStatement getInfoStmt = con.prepareStatement(userInfoSQL)) 
+	        {
 	            getInfoStmt.setLong(1, accountNo);
 	            ResultSet rs = getInfoStmt.executeQuery();
-	            if (rs.next()) {
+	            if (rs.next()) 
+	            {
 	                cardNumber = rs.getString("card_number");
 	                email = rs.getString("email");
 	                newBalance = rs.getDouble("balance");
-	            } else {
+	            } else 
+	            {
 	                con.rollback();
 	                return "Card number or email not found. Deposit failed.";
 	            }
 	        }
 
-	        String insertTransactionSQL = "INSERT INTO transactions(card_number, amount, type) VALUES (?, ?, 'Deposit')";
-	        try (PreparedStatement insertStmt = con.prepareStatement(insertTransactionSQL)) {
+	        String insertTransactionSQL = "INSERT INTO transactions(card_number, amount, type, admin_id) VALUES (?, ?, 'Deposit',?)";
+	        try (PreparedStatement insertStmt = con.prepareStatement(insertTransactionSQL)) 
+	        {
 	            insertStmt.setString(1, cardNumber);
 	            insertStmt.setInt(2, amount);
+	            insertStmt.setInt(3, adminId);
 	            insertStmt.executeUpdate();
 	        }
 
@@ -232,96 +180,43 @@ public class UserDao
 	    }
 	}
 
-	// Withdraw
-//	public static String withdraw(long accountNo, int amount)
-//	{
-//		
-//		String updateBalance = "UPDATE user SET balance = balance - ? WHERE accountNo = ?";
-//		// update balance
-//		try(Connection con = DbUtil.getConnection())
-//		{
-//			con.setAutoCommit(false);
-//			
-//			try(PreparedStatement stmt = con.prepareStatement(updateBalance))
-//			{
-//				stmt.setInt(1, amount);
-//				stmt.setLong(2, accountNo);
-//				int rowsUpdated = stmt.executeUpdate();
-//
-//	            if (rowsUpdated == 0) {
-//	                con.rollback();
-//	                return "Account not found. Deposit failed.";
-//	            }
-//	            
-//	            String getCardNumberSQL = "SELECT card_number FROM user WHERE accountNo = ?";
-//		        // 2. Get card_number
-//		        String cardNumber = null;
-//		        try (PreparedStatement getCardStmt = con.prepareStatement(getCardNumberSQL)) 
-//		        {
-//		            getCardStmt.setLong(1, accountNo);
-//		            ResultSet rs = getCardStmt.executeQuery();
-//		            if (rs.next()) 
-//		            {
-//		                cardNumber = rs.getString("card_number");
-//		            } 
-//		            else 
-//		            {
-//		                con.rollback();
-//		                return "Card number not found. Withdraw failed.";
-//		            }
-//		        }
-//
-//		        String insertTransactionSQL = "INSERT INTO transactions(card_number, amount, type) VALUES (?, ?, 'Withdraw')";
-//		        // 3. Insert transaction
-//		        try (PreparedStatement insertStmt = con.prepareStatement(insertTransactionSQL)) 
-//		        {
-//		            insertStmt.setString(1, cardNumber);
-//		            insertStmt.setInt(2, amount);
-//		            insertStmt.executeUpdate();
-//		        }
-//
-//		        con.commit(); // Commit transaction
-//
-//		        EmailSender.sendWithdrawalEmail(email, card, amount, newBalance);
-//
-//		        return "Withdraw successful.";
-//				
-//			}
-//		}
-//		catch (Exception e) 
-//		{
-//			 e.printStackTrace();
-//		       return "Error occurred during deposit.";
-//		}
-//	}
-	public static String withdraw(long accountNo, int amount) {
-	    try (Connection con = DbUtil.getConnection()) {
+	public static String withdraw(long accountNo, int amount, int adminId)
+	{
+	    try (Connection con = DbUtil.getConnection()) 
+	    {
 	        con.setAutoCommit(false);
 
 	        // Check balance first
 	        String checkBalanceSQL = "SELECT balance FROM user WHERE accountNo = ?";
 	        double balance = 0;
-	        try (PreparedStatement checkStmt = con.prepareStatement(checkBalanceSQL)) {
+	        try (PreparedStatement checkStmt = con.prepareStatement(checkBalanceSQL)) 
+	        {
 	            checkStmt.setLong(1, accountNo);
 	            ResultSet rs = checkStmt.executeQuery();
-	            if (rs.next()) {
+	            if (rs.next()) 
+	            {
 	                balance = rs.getDouble("balance");
-	                if (balance < amount) {
+	                if (balance < amount) 
+	                {
 	                    return "Insufficient balance.";
 	                }
-	            } else {
+	            } 
+	            else 
+	            {
 	                return "Account not found.";
 	            }
 	        }
-
+	        
 	        // Update balance
 	        String updateBalance = "UPDATE user SET balance = balance - ? WHERE accountNo = ?";
-	        try (PreparedStatement stmt = con.prepareStatement(updateBalance)) {
+	        try (PreparedStatement stmt = con.prepareStatement(updateBalance)) 
+	        {
 	            stmt.setInt(1, amount);
 	            stmt.setLong(2, accountNo);
 	            int rowsUpdated = stmt.executeUpdate();
 
-	            if (rowsUpdated == 0) {
+	            if (rowsUpdated == 0) 
+	            {
 	                con.rollback();
 	                return "Account not found. Withdraw failed.";
 	            }
@@ -331,31 +226,40 @@ public class UserDao
 	        String cardNumber = null, email = null;
 	        double newBalance = 0;
 
-	        try (PreparedStatement getCardStmt = con.prepareStatement(getCardInfoSQL)) {
+	        try (PreparedStatement getCardStmt = con.prepareStatement(getCardInfoSQL)) 
+	        {
 	            getCardStmt.setLong(1, accountNo);
 	            ResultSet rs = getCardStmt.executeQuery();
-	            if (rs.next()) {
+	            if (rs.next()) 
+	            {
 	                cardNumber = rs.getString("card_number");
 	                email = rs.getString("email");
 	                newBalance = rs.getDouble("balance");
-	            } else {
+	            } 
+	            else 
+	            {
 	                con.rollback();
 	                return "User info not found. Withdraw failed.";
 	            }
 	        }
 
-	        String insertTransactionSQL = "INSERT INTO transactions(card_number, amount, type) VALUES (?, ?, 'Withdraw')";
-	        try (PreparedStatement insertStmt = con.prepareStatement(insertTransactionSQL)) {
+	        String insertTransactionSQL = "INSERT INTO transactions(card_number, amount, type, admin_id) VALUES (?, ?, 'Withdraw', ?)";
+	        try (PreparedStatement insertStmt = con.prepareStatement(insertTransactionSQL)) 
+	        {
 	            insertStmt.setString(1, cardNumber);
 	            insertStmt.setInt(2, amount);
+	            insertStmt.setInt(3, adminId);
 	            insertStmt.executeUpdate();
 	        }
 
 	        con.commit();
 	        EmailSender.sendWithdrawalEmail(email, cardNumber, amount, newBalance);
+	        
 	        return "Withdraw successful.";
 
-	    } catch (Exception e) {
+	    } 
+	    catch (Exception e) 
+	    {
 	        e.printStackTrace();
 	        return "Error occurred during withdraw.";
 	    }
@@ -487,6 +391,114 @@ public class UserDao
         }
     }
     
+    public static String profileInfo(long accountNo)
+    {
+    	String infoSql = "SELECT accountNo, first_name, middle_name, last_name, email, card_number, pan_card_number, valid_till, balance FROM user WHERE accountNo = ?";
+    	try(Connection con = DbUtil.getConnection())
+    	{
+    		try(PreparedStatement stmt = con.prepareStatement(infoSql))
+    		{
+    			stmt.setLong(1, accountNo);
+    			
+    			ResultSet rs = stmt.executeQuery();
+    			if(rs.next())
+    			{
+    				long accNo = accountNo;
+    				String first_name = rs.getString("first_name");
+    				String middle_name = rs.getString("middle_name");
+    				String last_name = rs.getString("last_name");
+    				String email = rs.getString("email");
+    				long card_number = rs.getLong("card_number");
+    				String pan_card_number = rs.getString("pan_card_number");
+    				Date valid_till = rs.getDate("valid_till");
+    				double balance = rs.getDouble("balance");
+    				
+    				 return "\n===== Account Holder Details =====\n" +
+                     "Account No       : " + accountNo + "\n" +
+                     "Name             : " + first_name + " " + middle_name + " " + last_name + "\n" +
+                     "Email            : " + email + "\n" +
+                     "ATM Card No      : " + card_number + "\n" +
+                     "PAN Card No      : " + pan_card_number + "\n" +
+                     "Card Valid Till  : " + valid_till + "\n" +
+                     "Current Balance  : ₹" + balance + "\n" +
+                     "==================================\n";
+    			}
+    			else
+    			{
+    				return "Account not found";
+    			}
+    		}
+    	}
+    	catch (Exception e) 
+    	{
+    		e.printStackTrace();
+			return "Error During Fetch Account Holder Info !!!";
+    	}
+    }
+    
+//    public static String lowBalanceAlert(long accountNo)
+//    {
+//    	try(Connection con = DbUtil.getConnection())
+//    	{
+//    		String lowBalanceSql = "SELECT balance FROM user WHERE accountNo = ?";
+//    		try(PreparedStatement stmt = con.prepareStatement(lowBalanceSql))
+//    		{
+//    			stmt.setLong(1, accountNo);
+//    			
+//    			ResultSet rs = stmt.executeQuery();
+//    			
+//    			if (rs.next()) 
+//    			{
+//    			 double balance = rs.getLong("balance");
+//    			 
+//    			 if(balance <= 2000)
+//    			 {
+//    				 return "Maintatin Minimum balance (2000)";
+//    			 }
+//				}
+//    			else
+//    			{
+//    				return "Account Not Found";
+//    			}
+//    			
+//    		}
+//    	}
+//    	catch 
+//    	(Exception e) 
+//    	{
+//    		return "";
+//    		// TODO: handle exception
+//		}
+//    	
+//    	return "You are running on Low Balance";
+//    }
+    
+    public static String lowBalanceAlert(long accountNo) {
+        try (Connection con = DbUtil.getConnection()) {
+            String lowBalanceSql = "SELECT balance FROM user WHERE accountNo = ?";
+            try (PreparedStatement stmt = con.prepareStatement(lowBalanceSql)) {
+                stmt.setLong(1, accountNo);
+                ResultSet rs = stmt.executeQuery();
+
+                if (rs.next()) {
+                    double balance = rs.getDouble("balance");
+
+                    if (balance <= 2000) {
+                        return "Maintain Minimum balance (2000)";
+                    } else {
+                        return null; // No alert
+                    }
+                } else {
+                    return "Account Not Found";
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error checking balance.";
+        }
+    }
+
+    
     // fixed deposit
     public static String createFixedDeposit(long accountNo, double amount, int durationMonths)
     {
@@ -555,68 +567,6 @@ public class UserDao
     			return "Failed to create FD";
 			}
     }
-    
-//    public static String matureFixedDeposit(int fdId) {
-//        try (Connection con = DbUtil.getConnection()) {
-//            con.setAutoCommit(false);
-//
-//            // 1. Get FD details
-//            String fdSQL = "SELECT account_no, amount, interest_rate, duration_months, start_date, maturity_date, status FROM fixed_deposits WHERE fd_id = ?";
-//            long accountNo = 0;
-//            double amount = 0, rate = 0;
-//            int duration = 0;
-//            String status = "";
-//            Date maturityDate = null;
-//
-//            try (PreparedStatement ps = con.prepareStatement(fdSQL)) {
-//                ps.setInt(1, fdId);
-//                ResultSet rs = ps.executeQuery();
-//                if (rs.next()) {
-//                    accountNo = rs.getLong("account_no");
-//                    amount = rs.getDouble("amount");
-//                    rate = rs.getDouble("interest_rate");
-//                    duration = rs.getInt("duration_months");
-//                    maturityDate = rs.getDate("maturity_date");
-//                    status = rs.getString("status");
-//
-//                    if (!status.equalsIgnoreCase("Active")) {
-//                        return "FD already matured.";
-//                    }
-//
-//                    if (LocalDate.now().isBefore(maturityDate.toLocalDate())) {
-//                        return "FD is not yet matured.";
-//                    }
-//                } else {
-//                    return "FD not found.";
-//                }
-//            }
-//
-//            // 2. Calculate maturity amount (Simple interest)
-//            double maturityAmount = amount + (amount * rate * duration) / (12 * 100);
-//
-//            // 3. Update user's balance
-//            String updateBalanceSQL = "UPDATE user SET balance = balance + ? WHERE accountNo = ?";
-//            try (PreparedStatement ps = con.prepareStatement(updateBalanceSQL)) {
-//                ps.setDouble(1, maturityAmount);
-//                ps.setLong(2, accountNo);
-//                ps.executeUpdate();
-//            }
-//
-//            // 4. Mark FD as matured
-//            String updateFdSQL = "UPDATE fixed_deposits SET status = 'Matured' WHERE fd_id = ?";
-//            try (PreparedStatement ps = con.prepareStatement(updateFdSQL)) {
-//                ps.setInt(1, fdId);
-//                ps.executeUpdate();
-//            }
-//
-//            con.commit();
-//            return "FD matured. Rs. " + maturityAmount + " credited to account.";
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return "FD maturity failed.";
-//        }
-//    }
     
     public static void autoMatureFDs() {
         System.out.println("FD Maturity Job Running...");
